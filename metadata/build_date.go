@@ -1,0 +1,3 @@
+package metadata
+
+const BuildDate = "2026-01-03 15:46:04"
