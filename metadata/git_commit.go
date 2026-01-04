@@ -1,3 +1,3 @@
 package metadata
 
-const GitCommit = "a3a152cece586ef19b6d6f3a0a37281cc166db99"
+const GitCommit = "6450f3d5c6476f8b50e54dc1e8634feb2c2d2585"

@@ -27,6 +27,13 @@ func (b *BadgerDb) SetBlock(block *types.Block, txs []*types.Transaction) error 
 			return err
 		}
 
+		var heightBuf bytes.Buffer
+		if err := gob.NewEncoder(&heightBuf).Encode(block.Height); err != nil {
+			return err
+		} else if err = txn.Set(getHeightKey(), heightBuf.Bytes()); err != nil {
+			return err
+		}
+
 		accountsCache := make(map[ecommon.Address]*types.Account)
 		getAccount := func(address ecommon.Address) (*types.Account, error) {
 			if acc, ok := accountsCache[address]; ok {
@@ -142,7 +149,7 @@ func (b *BadgerDb) GetBlockByHeight(height uint64) (*types.Block, error) {
 		return nil, err
 	}
 	var decodedBlock types.Block
-	if err := b.db.View(func(txn *badger.Txn) error {
+	if err = b.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(getBlockKey(*hash))
 		if err != nil {
 			return err

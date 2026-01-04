@@ -91,6 +91,29 @@ type BlockInfo struct {
 	Transactions []TransactionInfo
 }
 
+func (bi *BlockInfo) ToBlock() (*Block, error) {
+	sigBytes, err := base64.StdEncoding.DecodeString(bi.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	txHashes := make([]ecommon.Hash, len(bi.Transactions))
+	for i, txInfo := range bi.Transactions {
+		txHashes[i] = ecommon.HexToHash(txInfo.Hash)
+	}
+
+	return &Block{
+		ChainId:      bi.ChainId,
+		Hash:         ecommon.HexToHash(bi.Hash),
+		Height:       bi.Height,
+		Timestamp:    bi.Timestamp,
+		PrevHash:     ecommon.HexToHash(bi.PrevHash),
+		Validator:    ecommon.HexToAddress(bi.Validator),
+		Signature:    sigBytes,
+		Transactions: txHashes,
+	}, nil
+}
+
 type BlockInfoList struct {
 	Count  uint64
 	Blocks []BlockInfo

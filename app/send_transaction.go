@@ -29,7 +29,7 @@ func sendAction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = m.node.Start(false); err != nil {
+	if err = m.node.Start(true); err != nil {
 		m.logger.Fatal("failed to start node", zap.String("reason", err.Error()))
 		os.Exit(1)
 	}

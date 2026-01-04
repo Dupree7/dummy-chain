@@ -8,7 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 
+	"github.com/dgraph-io/badger/v4"
 	ecommon "github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 )
 
 type Service struct {
@@ -108,9 +110,10 @@ func (b *Service) GetBlocksInterval(interval BlockInterval, reply *types.BlockIn
 	for i := interval.Left; i <= interval.Right; i++ {
 		block, err := b.storage.GetBlockByHeight(i)
 		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) || errors.Is(err, badger.ErrKeyNotFound) {
+				break
+			}
 			return err
-		} else if block == nil {
-			break
 		}
 		blockInfo := block.ToInfo()
 		for _, txHash := range block.Transactions {

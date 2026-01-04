@@ -112,10 +112,12 @@ func (node *Node) Start(shouldSync bool) error {
 		go node.CreateBlocks(context.Background())
 	}
 
-	if shouldSync {
+	if shouldSync && metadata.Role == common.ClientRole {
 		if errStart := node.Sync(); errStart != nil {
 			return errStart
 		}
+
+		go node.FetchBlocks(context.Background())
 	}
 
 	return nil
@@ -185,15 +187,11 @@ func (node *Node) CreateBlocks(ctx context.Context) {
 			}
 
 			if errSet := node.storage.SetBlock(block, goodTxs); errSet != nil {
-				node.logger.Debugf("Failed to set block: %s", err.Error())
+				node.logger.Debugf("Failed to set block: %s", errSet.Error())
 				continue
 			} else {
 				// Only now we remove the transactions from the mempool
 				node.memPool.RemoveTxs(txs)
-			}
-			if errSet := node.storage.SetHeight(block.Height); errSet != nil {
-				node.logger.Debugf("Failed to set block height: %s", err.Error())
-				continue
 			}
 
 			node.logger.Debugf("Created a new block: %s", block.String())
@@ -202,14 +200,57 @@ func (node *Node) CreateBlocks(ctx context.Context) {
 }
 
 func (node *Node) Sync() error {
-	// We first fetch all the remaining blocks
-	//currentHeight, err := node.storage.GetHeight()
-	//if err != nil {
-	//	node.logger.Error("failed to get current height", err)
-	//	return
-	//}
+	for {
+		currentHeight, err := node.storage.GetHeight()
+		if err != nil {
+			return err
+		}
 
+		list, err := node.rpcClient.GetBlocksInterval(currentHeight+1, currentHeight+10)
+		if err != nil {
+			return err
+		} else if list.Count == 0 {
+			break
+		}
+		node.logger.Debugf("Syncing block height: %d. Synced %d blocks", currentHeight, list.Count)
+		for _, blockInfo := range list.Blocks {
+			block, errTo := blockInfo.ToBlock()
+			if errTo != nil {
+				return errTo
+			}
+			//node.logger.Debugf("Adding block: %s", block.Hash.String())
+			txs := make([]*types.Transaction, 0)
+			for _, txInfo := range blockInfo.Transactions {
+				tx, errTo := txInfo.ToTransaction()
+				if errTo != nil {
+					return errTo
+				}
+				txs = append(txs, tx)
+			}
+			if errSet := node.storage.SetBlock(block, txs); errSet != nil {
+				return errSet
+			}
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 	return nil
+}
+
+func (node *Node) FetchBlocks(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			errSync := node.Sync()
+			if errSync != nil {
+				node.logger.Debugf("Failed to sync blocks: %s", errSync.Error())
+			}
+		}
+	}
 }
 
 // VerifyTransactions

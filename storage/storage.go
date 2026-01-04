@@ -126,20 +126,6 @@ func (b *BadgerDb) Start() error {
 	return nil
 }
 
-func (b *BadgerDb) SetHeight(height uint64) error {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(height); err != nil {
-		return err
-	}
-
-	if err := b.db.Update(func(txn *badger.Txn) error {
-		return txn.Set(getHeightKey(), buf.Bytes())
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (b *BadgerDb) GetHeight() (uint64, error) {
 	var decodedHeight uint64
 	if err := b.db.View(func(txn *badger.Txn) error {

@@ -77,3 +77,20 @@ type TransactionInfo struct {
 	Value       *big.Int
 	Signature   string
 }
+
+func (ti *TransactionInfo) ToTransaction() (*Transaction, error) {
+	sigBytes, err := base64.StdEncoding.DecodeString(ti.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Transaction{
+		Hash:        ecommon.HexToHash(ti.Hash),
+		BlockHeight: ti.BlockHeight,
+		From:        ecommon.HexToAddress(ti.From),
+		Nonce:       ti.Nonce,
+		To:          ecommon.HexToAddress(ti.To),
+		Value:       ti.Value,
+		Signature:   sigBytes,
+	}, nil
+}
