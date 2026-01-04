@@ -68,6 +68,7 @@ func (b *BadgerDb) Start() error {
 	}
 
 	genesisBlock := &types.Block{
+		ChainId:      common.DummyChainId,
 		Height:       0,
 		Timestamp:    1767441600,
 		PrevHash:     ecommon.Hash{},
@@ -76,7 +77,8 @@ func (b *BadgerDb) Start() error {
 		Transactions: []ecommon.Hash{},
 	}
 
-	for i := uint32(0); i < 5; i++ {
+	txs := make([]*types.Transaction, 0)
+	for i := uint32(0); i < 11; i++ {
 		addressKey, errChild := changeKey.NewChildKey(i)
 		if errChild != nil {
 			return errChild
@@ -92,37 +94,25 @@ func (b *BadgerDb) Start() error {
 
 		amount := new(big.Int).Mul(common.OneCoin, common.Big10000)
 		bigI := new(big.Int).SetUint64(uint64(i))
-		account := &types.Account{
-			Address: address,
-			Nonce:   0,
-			Balance: new(big.Int).Add(amount, bigI),
-		}
-
-		if errSet := b.SetAccount(account); errSet != nil {
-			return errSet
-		}
+		amount.Add(amount, bigI)
 
 		tx := &types.Transaction{
 			BlockHeight: 0,
 			From:        ecommon.Address{},
 			Nonce:       0,
-			To:          account.Address,
-			Value:       new(big.Int).Set(account.Balance),
+			To:          address,
+			Value:       new(big.Int).Set(amount),
 			Signature:   []byte{},
 		}
 		tx.Hash = tx.GetHash()
-		if errSet := b.SetTransaction(tx); errSet != nil {
-			return errSet
-		}
-
 		genesisBlock.Transactions = append(genesisBlock.Transactions, tx.Hash)
+		txs = append(txs, tx)
 	}
-
 	genesisBlock.Hash = genesisBlock.GetHash()
-	common.GlobalLogger.Debugf("Genesis %s", genesisBlock.String())
-	if errSet := b.SetBlock(genesisBlock); errSet != nil {
+	if errSet := b.SetBlock(genesisBlock, txs); errSet != nil {
 		return errSet
 	}
+	//common.GlobalLogger.Debugf("Genesis: %s", genesisBlock.String())
 
 	return nil
 }

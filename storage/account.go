@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"dummy-chain/common/types"
 	"encoding/gob"
+	"math/big"
 
 	"github.com/dgraph-io/badger/v4"
 	ecommon "github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 )
 
 func (b *BadgerDb) SetAccount(account *types.Account) error {
@@ -39,6 +41,14 @@ func (b *BadgerDb) GetAccount(address ecommon.Address) (*types.Account, error) {
 		}
 		return nil
 	}); err != nil {
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			return &types.Account{
+				Address: address,
+				Nonce:   0,
+				Balance: big.NewInt(0),
+			}, nil
+		}
+
 		return nil, err
 	}
 	return &decodedAccount, nil

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"dummy-chain/common"
 	"encoding/base64"
+	"fmt"
 	"math/big"
 
 	ecommon "github.com/ethereum/go-ethereum/common"
@@ -40,6 +41,31 @@ func (tx *Transaction) ToInfo() TransactionInfo {
 		Value:       new(big.Int).Set(tx.Value),
 		Signature:   base64.StdEncoding.EncodeToString(tx.Signature),
 	}
+}
+
+func (tx *Transaction) String() string {
+	valFormatted := "nil"
+	if tx.Value != nil {
+		valFormatted = common.FormatBigInt(tx.Value)
+	}
+
+	return fmt.Sprintf(`Transaction{
+	Hash:  %s
+	Block: %d
+	From:  %s
+	Nonce: %d
+	To:    %s
+	Value: %s
+	Sig:   %s
+}`,
+		tx.Hash.Hex(),
+		tx.BlockHeight,
+		tx.From.Hex(),
+		tx.Nonce,
+		tx.To.Hex(),
+		valFormatted,
+		base64.StdEncoding.EncodeToString(tx.Signature),
+	)
 }
 
 type TransactionInfo struct {

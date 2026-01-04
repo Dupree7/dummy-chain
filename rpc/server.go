@@ -35,7 +35,6 @@ func (s *Server) Start() error {
 
 		s.server.ServeCodec(codec)
 	})
-
 	return http.ListenAndServe(":12345", nil)
 }
 

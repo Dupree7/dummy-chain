@@ -13,6 +13,7 @@ import (
 )
 
 type Block struct {
+	ChainId      uint64
 	Hash         ecommon.Hash
 	Height       uint64
 	Timestamp    int64
@@ -24,6 +25,7 @@ type Block struct {
 
 func (b *Block) GetHash() ecommon.Hash {
 	buf := new(bytes.Buffer)
+	buf.Write(common.Uint64ToBytes(b.ChainId))
 	buf.Write(common.Uint64ToBytes(b.Height))
 	buf.Write(common.Uint64ToBytes(uint64(b.Timestamp)))
 	buf.Write(b.PrevHash.Bytes())
@@ -38,6 +40,7 @@ func (b *Block) GetHash() ecommon.Hash {
 
 func (b *Block) ToInfo() BlockInfo {
 	return BlockInfo{
+		ChainId:      b.ChainId,
 		Hash:         b.Hash.String(),
 		Height:       b.Height,
 		Timestamp:    b.Timestamp,
@@ -55,6 +58,7 @@ func (b *Block) String() string {
 	}
 
 	return fmt.Sprintf(`Block:
+	ChainId:   %d
 	Hash:      %s
 	Height:    %d
 	Timestamp: %s (%d)
@@ -63,6 +67,7 @@ func (b *Block) String() string {
 	Signature: %s
 	Transactions (%d):%s
 `,
+		b.ChainId,
 		b.Hash.String(),
 		b.Height,
 		time.Unix(b.Timestamp, 0).Format(time.DateTime),
@@ -76,6 +81,7 @@ func (b *Block) String() string {
 }
 
 type BlockInfo struct {
+	ChainId      uint64
 	Hash         string
 	Height       uint64
 	Timestamp    int64

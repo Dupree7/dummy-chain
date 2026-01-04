@@ -2,12 +2,18 @@ package common
 
 import (
 	"math/big"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
+	DummyChainId = 21
+	BlockTime    = 5 * time.Second
 	CoinDecimals = 18
 	CoinSymbol   = "GO"
 
+	DummyAddressStr   = "0x00000000000000000000000000000000DeaDBeef"
 	DefaultStorageDir = "storage"
 )
 
@@ -24,7 +30,8 @@ var (
 	Big10000  = big.NewInt(10000)
 	BigP256m1 = new(big.Int).Sub(BigP256, big.NewInt(1))
 
-	OneCoin = new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(CoinDecimals)), nil)
+	OneCoin      = new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(CoinDecimals)), nil)
+	DummyAddress = common.HexToAddress(DummyAddressStr)
 
 	ValidatorRole = "validator"
 	ClientRole    = "client"
