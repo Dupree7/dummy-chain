@@ -47,7 +47,7 @@ func NewManager(ctx *cli.Context) (*Manager, error) {
 func (m *Manager) Start() error {
 	// Start up the node
 	m.logger.Info("Preparing ...")
-	if err := m.node.Start(); err != nil {
+	if err := m.node.Start(true); err != nil {
 		m.logger.Fatal("failed to start node", zap.String("reason", err.Error()))
 		os.Exit(1)
 	} else {

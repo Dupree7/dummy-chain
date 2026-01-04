@@ -42,6 +42,15 @@ func NewBadgerDb(name string) (*BadgerDb, error) {
 // Start This method will simulate the interpretation of the genesis block
 // It should add balances and init accounts to the first 100 indexes of the mnemonic
 func (b *BadgerDb) Start() error {
+	_, err := b.GetBlockHashByHeight(0)
+	if err != nil {
+		if !errors.Is(err, badger.ErrKeyNotFound) {
+			return err
+		}
+	} else {
+		return nil
+	}
+
 	mnemonic := "margin bounce nominee submit pupil duty bird daughter hotel onion wave write"
 
 	seed := bip39.NewSeed(mnemonic, "")

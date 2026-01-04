@@ -42,6 +42,7 @@ func init() {
 	app.Compiled = time.Now()
 	app.Commands = []*cli.Command{
 		versionCommand,
+		sendCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

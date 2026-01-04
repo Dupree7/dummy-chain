@@ -1,3 +1,3 @@
 package metadata
 
-const Role = "validator"
+const Role = "client"

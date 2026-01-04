@@ -57,23 +57,23 @@ func (b *Block) String() string {
 		txs.WriteString(fmt.Sprintf("\n\t\t%d: %s", i, tx.String()))
 	}
 
-	return fmt.Sprintf(`Block:
-	ChainId:   %d
+	return fmt.Sprintf(`
 	Hash:      %s
 	Height:    %d
 	Timestamp: %s (%d)
 	PrevHash:  %s
 	Validator: %s
+	ChainId:   %d
 	Signature: %s
 	Transactions (%d):%s
 `,
-		b.ChainId,
 		b.Hash.String(),
 		b.Height,
 		time.Unix(b.Timestamp, 0).Format(time.DateTime),
 		b.Timestamp,
 		b.PrevHash.String(),
 		b.Validator.String(),
+		b.ChainId,
 		base64.StdEncoding.EncodeToString(b.Signature),
 		len(b.Transactions),
 		txs.String(),
@@ -89,4 +89,9 @@ type BlockInfo struct {
 	Validator    string
 	Signature    string
 	Transactions []TransactionInfo
+}
+
+type BlockInfoList struct {
+	Count  uint64
+	Blocks []BlockInfo
 }

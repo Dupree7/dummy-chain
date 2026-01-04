@@ -15,7 +15,7 @@ func NewGlobalConfig() *GlobalConfig {
 		BaseConfig: BaseConfig{
 			DataPath:     common.DefaultDataDir(),
 			Mnemonic:     "",
-			AccountIndex: 0,
+			AccountIndex: 1,
 			Url:          "http://127.0.0.1:12345",
 		},
 	}

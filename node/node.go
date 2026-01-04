@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"dummy-chain/common"
@@ -9,6 +10,8 @@ import (
 	"dummy-chain/metadata"
 	"dummy-chain/rpc"
 	"dummy-chain/storage"
+	"encoding/base64"
+	"encoding/gob"
 	"math/big"
 	"math/rand/v2"
 	"os"
@@ -35,7 +38,7 @@ type Node struct {
 
 	rpcServer *rpc.Server
 	rpcClient *rpc.Client
-	memPool   *MemoryPool
+	memPool   *rpc.MemoryPool
 	storage   *storage.BadgerDb
 
 	// Channel to wait for termination notifications
@@ -50,7 +53,7 @@ func NewNode(globalConfig *config.GlobalConfig, logger *zap.Logger) (*Node, erro
 
 	node := &Node{
 		globalConfig: globalConfig,
-		memPool:      NewMemoryPool(),
+		memPool:      rpc.NewMemoryPool(),
 		logger:       logger.Sugar(),
 		stopChan:     make(chan os.Signal, 1),
 	}
@@ -67,7 +70,7 @@ func NewNode(globalConfig *config.GlobalConfig, logger *zap.Logger) (*Node, erro
 	// Only the syncer is the server and the source of truth, other are clients
 	// All RPCs will be sent to him
 	if metadata.Role == common.ValidatorRole {
-		node.rpcServer, err = rpc.NewServer(node.storage)
+		node.rpcServer, err = rpc.NewServer(node.storage, node.memPool)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +94,7 @@ func NewNode(globalConfig *config.GlobalConfig, logger *zap.Logger) (*Node, erro
 	return node, nil
 }
 
-func (node *Node) Start() error {
+func (node *Node) Start(shouldSync bool) error {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 
@@ -107,6 +110,12 @@ func (node *Node) Start() error {
 		}()
 
 		go node.CreateBlocks(context.Background())
+	}
+
+	if shouldSync {
+		if errStart := node.Sync(); errStart != nil {
+			return errStart
+		}
 	}
 
 	return nil
@@ -138,7 +147,6 @@ func (node *Node) CreateBlocks(ctx context.Context) {
 				node.logger.Debugf("Failed to get current block height: %s", err.Error())
 				continue
 			}
-			node.logger.Debugf("Current block height: %d", currentBlockHeight)
 			prevBlock, err := node.storage.GetBlockByHeight(currentBlockHeight)
 			if err != nil {
 				node.logger.Debugf("Failed to get previous block: %s", err.Error())
@@ -156,9 +164,9 @@ func (node *Node) CreateBlocks(ctx context.Context) {
 			txs := node.memPool.GetMemPool()
 
 			// Only for testing purposes
-			if len(txs) == 0 {
-				txs = node.GenerateRandomTestTransactions()
-			}
+			//if len(txs) == 0 {
+			//	txs = node.GenerateRandomTestTransactions()
+			//}
 
 			var goodTxs []*types.Transaction
 			if len(txs) > 0 {
@@ -193,7 +201,7 @@ func (node *Node) CreateBlocks(ctx context.Context) {
 	}
 }
 
-func (node *Node) Sync(ctx context.Context) {
+func (node *Node) Sync() error {
 	// We first fetch all the remaining blocks
 	//currentHeight, err := node.storage.GetHeight()
 	//if err != nil {
@@ -201,17 +209,7 @@ func (node *Node) Sync(ctx context.Context) {
 	//	return
 	//}
 
-	ticker := time.NewTicker(6 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-
-		}
-	}
+	return nil
 }
 
 // VerifyTransactions
@@ -223,7 +221,7 @@ func (node *Node) VerifyTransactions(txs []*types.Transaction) []*types.Transact
 	goodTxs := make([]*types.Transaction, 0)
 
 	for _, tx := range txs {
-		node.logger.Debugf("Verifying transaction: %s", tx.String())
+		//node.logger.Debugf("Verifying transaction: %s", tx.String())
 
 		// Check signature
 		if pubKeyBytes, err := crypto.Ecrecover(tx.Hash.Bytes(), tx.Signature); err != nil {
@@ -330,4 +328,41 @@ func (node *Node) GenerateRandomTestTransactions() []*types.Transaction {
 		txs = append(txs, tx)
 	}
 	return txs
+}
+
+func (node *Node) SendTransaction(to string, value string) error {
+	valueBig, err := common.ParseToBigInt(value)
+	if err != nil {
+		return err
+	}
+
+	account, err := node.storage.GetAccount(*node.address)
+	if err != nil {
+		return err
+	}
+
+	if valueBig.Cmp(account.Balance) > 0 {
+		return common.ErrNotEnoughBalanceUser
+	}
+
+	tx := &types.Transaction{
+		BlockHeight: 0,
+		From:        *node.address,
+		Nonce:       account.Nonce,
+		To:          ecommon.HexToAddress(to),
+		Value:       new(big.Int).Set(valueBig),
+		Signature:   []byte{},
+	}
+
+	tx.Hash = tx.GetHash()
+	tx.Signature, err = crypto.Sign(tx.Hash[:], node.privateKey)
+	if err != nil {
+		return err
+	}
+	var txBuf bytes.Buffer
+	if err := gob.NewEncoder(&txBuf).Encode(*tx); err != nil {
+		return err
+	}
+	base64Tx := base64.StdEncoding.EncodeToString(txBuf.Bytes())
+	return node.rpcClient.SendTransaction(base64Tx)
 }

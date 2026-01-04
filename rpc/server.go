@@ -12,9 +12,9 @@ type Server struct {
 	server *rpc.Server
 }
 
-func NewServer(storage *storage.BadgerDb) (*Server, error) {
+func NewServer(storage *storage.BadgerDb, memPool *MemoryPool) (*Server, error) {
 	newServer := rpc.NewServer()
-	newService := NewService(storage)
+	newService := NewService(storage, memPool)
 	if errRegister := newServer.RegisterName("chain", newService); errRegister != nil {
 		return nil, errRegister
 	}

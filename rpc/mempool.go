@@ -1,4 +1,4 @@
-package node
+package rpc
 
 import (
 	"dummy-chain/common/types"

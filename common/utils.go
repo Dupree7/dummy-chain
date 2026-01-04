@@ -2,6 +2,7 @@ package common
 
 import (
 	"crypto/ecdsa"
+	"dummy-chain/metadata"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -132,7 +133,7 @@ func DefaultDataDir() string {
 		case "windows":
 			panic("windows not supported")
 		default:
-			return filepath.Join(home, ".dummychain")
+			return filepath.Join(home, fmt.Sprintf(".dummychain-%s", metadata.Role))
 		}
 	}
 	// As we cannot guess a stable location, return empty and handle later
@@ -187,12 +188,12 @@ func IsHex(str string) bool {
 	return true
 }
 
-func ParseToBigInt(s string, decimals int) (*big.Int, error) {
+func ParseToBigInt(s string) (*big.Int, error) {
 	f, ok := new(big.Float).SetString(s)
 	if !ok {
 		return nil, fmt.Errorf("invalid float string")
 	}
-	scale := new(big.Float).SetFloat64(math.Pow10(decimals))
+	scale := new(big.Float).SetFloat64(math.Pow10(CoinDecimals))
 	f.Mul(f, scale)
 
 	i := new(big.Int)
