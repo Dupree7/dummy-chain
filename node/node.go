@@ -120,6 +120,52 @@ func (node *Node) Start(shouldSync bool) error {
 		go node.FetchBlocks(context.Background())
 	}
 
+	/// Print own address
+	mnemonic := "margin bounce nominee submit pupil duty bird daughter hotel onion wave write"
+
+	seed := bip39.NewSeed(mnemonic, "")
+	masterKey, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		return err
+	}
+
+	purposeKey, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 44)
+	if err != nil {
+		return err
+	}
+	coinTypeKey, err := purposeKey.NewChildKey(bip32.FirstHardenedChild + 60)
+	if err != nil {
+		return err
+	}
+	accountKey, err := coinTypeKey.NewChildKey(bip32.FirstHardenedChild)
+	if err != nil {
+		return err
+	}
+	changeKey, err := accountKey.NewChildKey(0)
+	if err != nil {
+		return err
+	}
+
+	addressKey, errChild := changeKey.NewChildKey(node.globalConfig.AccountIndex)
+	if errChild != nil {
+		return errChild
+	}
+
+	privateKey, errPrivateKey := crypto.ToECDSA(addressKey.Key)
+	if errPrivateKey != nil {
+		return errPrivateKey
+	}
+
+	address := crypto.PubkeyToAddress(privateKey.PublicKey)
+	common.GlobalLogger.Debugf("%d. Address: %s", node.globalConfig.AccountIndex, address.Hex())
+
+	account, err := node.storage.GetAccount(address)
+	if err != nil {
+		return err
+	}
+	common.GlobalLogger.Debugf("My balance is: %s and my nonce is: %d",
+		common.FormatBigInt(account.Balance), account.Nonce)
+
 	return nil
 }
 

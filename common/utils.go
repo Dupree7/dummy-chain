@@ -131,7 +131,7 @@ func DefaultDataDir() string {
 		case "darwin":
 			panic("darwin not supported")
 		case "windows":
-			panic("windows not supported")
+			return filepath.Join(fmt.Sprintf("C:\\Users\\Dupree\\Desktop\\dummychain-%s", metadata.Role))
 		default:
 			return filepath.Join(home, fmt.Sprintf(".dummychain-%s", metadata.Role))
 		}
